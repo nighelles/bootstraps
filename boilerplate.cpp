@@ -28,8 +28,8 @@ Boilerplate::Boilerplate() {
   ;;
 }
 
-void save(string filename) {
-    ofstream oFile("boilerplate.cpp");
+void save(string filename, const vector<string> &lines) {
+    ofstream oFile(filename);
     for (string i : lines) {
         oFile << i << "\n";
     }
@@ -55,7 +55,7 @@ bool Boilerplate::run() {
   noecho();
 
   // load files
-  for (filename : files) {
+  for (string filename : files) {
     vector<string> tempLines;
     ifstream inFile(filename);
 
@@ -73,6 +73,7 @@ bool Boilerplate::run() {
   int scrolloffset = 0;
 
   bool dontquit = true;
+  bool toreturn = true;
   
   while (dontquit)
     {
@@ -80,7 +81,7 @@ bool Boilerplate::run() {
 
       move(0,0);
       attron(A_STANDOUT);
-      printw("bootstraps %d // press F5 to continue", highlight_y-header_size+scrolloffset);
+      printw("bootstraps %d // Compile, F6 Switch Files, F7 Quit", highlight_y-header_size+scrolloffset);
       attroff(A_STANDOUT);
 
       // Do the file selection thing
@@ -98,7 +99,7 @@ bool Boilerplate::run() {
 	{
 	  int ytoshow = y + scrolloffset;
 	  
-	  if (lines.size()>ytoshow && ytoshow >= 0) {
+	  if (lines[file_num].size()>ytoshow && ytoshow >= 0) {
 	    for(int x=0;x<lines[file_num][ytoshow].length();x++)
 	      {
 		move(y+header_size,x); // extra 1 is for header
@@ -134,15 +135,10 @@ bool Boilerplate::run() {
 	highlight_x--;break;
       case KEY_RIGHT:
 	highlight_x++;break;
-      case KEY_SLEFT:
-	file_num--;
-	if (file_num < 0) file_num = files.size()-1;
-	break;
-      case KEY_SRIGHT:
-	file_num++;
+      case KEY_F(6):
+	file_num+=1;
 	if (file_num >= files.size()) file_num = 0;
 	break;
-	
       case KEY_BACKSPACE:
 	  if (line == "") {
 	    lines[file_num].erase(lines_it);
@@ -163,6 +159,10 @@ bool Boilerplate::run() {
       case KEY_F(5):
 	dontquit=false;
 	break;
+      case KEY_F(7):
+	dontquit=false;
+	toreturn=false;
+	break;
 
       default:
 	if (highlight_x <= line.size()) {
@@ -175,7 +175,7 @@ bool Boilerplate::run() {
 	  highlight_x = line.size()+1;
 	}
       }
-	
+      
       if (highlight_y>maxy) {
 	highlight_y -= 1;
 	if (file_y < lines.size()-1)
@@ -192,8 +192,9 @@ bool Boilerplate::run() {
 
   // Here's the fun part
 
-  save(files[file_num]); //save current file
-
+  for (int i=0;i<files.size();i++) {
+    save(files[i],lines[i]); //save all files
+  }
   int error = system("clear;g++ -std=c++11 -fPIC -shared boilerplate.cpp -o boilerplate.so -lncurses");
 
   if (error != 0) // good job
@@ -202,7 +203,7 @@ bool Boilerplate::run() {
       getch();
     }
   
-  return true;
+  return toreturn;
 }
 
 
