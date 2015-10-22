@@ -9,7 +9,10 @@
 
 using namespace std;
 
+//This is a test comment 
+
 extern "C" Boilerplate* create_Boilerplate()
+
 {
   return new Boilerplate;
 }
@@ -42,26 +45,30 @@ bool Boilerplate::run() {
   for (string line; getline(inFile, line);)
     lines.push_back(line);
 
+  inFile.close();
+
   int ch;
   int maxx,maxy;
   getmaxyx(stdscr,maxy,maxx);
   
   int scrolloffset = 0;
+
+  bool dontquit = true;
   
-  while (ch != KEY_F(5))
+  while (dontquit)
     {
       clear();
 
       move(0,0);
       attron(A_STANDOUT);
-      printw("bootstraps // press F5 to continue");
+      printw("bootstraps %d // press F5 to continue", highlight_y-1+scrolloffset);
       attroff(A_STANDOUT);
   
-      for(int y=0;y<maxy;y++)
+      for(int y=0;y<maxy-1;y++)
 	{
 	  int ytoshow = y + scrolloffset;
 	  
-	  if (lines.size()>ytoshow) {
+	  if (lines.size()>ytoshow && ytoshow >= 0) {
 	    for(int x=0;x<lines[ytoshow].length();x++)
 	      {
 		move(y+1,x); // extra 1 is for header
@@ -73,13 +80,13 @@ bool Boilerplate::run() {
       refresh();
       ch = getch();
 
-      int file_x = highlight_x;
-      int file_y = highlight_y-1-scrolloffset;
-
       vector<string>::iterator lines_it;
       string line;
       string::iterator line_it;
 
+      int file_x = highlight_x;
+      int file_y = highlight_y-1+scrolloffset;
+      
       lines_it = lines.begin()+file_y;
       line = *lines_it;
       line_it = line.begin()+file_x;
@@ -114,7 +121,11 @@ bool Boilerplate::run() {
 	    
 	  }
         break;
-	
+
+      case KEY_F(5):
+	dontquit=false;
+	break;
+
       default:
 	if (highlight_x < line.size()) {
 	  line.insert(line_it, ch);
@@ -128,9 +139,10 @@ bool Boilerplate::run() {
 	
       if (highlight_y>maxy) {
 	highlight_y -= 1;
-	scrolloffset += 1;
+	if (file_y < lines.size()-1)
+	  scrolloffset += 1;
       }
-      if (highlight_y<0) {
+      if (highlight_y<1) {
 	highlight_y += 1;
 	scrolloffset -= 1;
       }
@@ -139,11 +151,15 @@ bool Boilerplate::run() {
   
   endwin();
 
-  inFile.close();
-
   // Here's the fun part
 
-  int error = system("clear;g++ -fPIC -shared boilerplate.cpp -o boilerplate.so -lncurses");
+  ofstream oFile("boilerplate.cpp");
+  for (string i : lines) {
+    oFile << i << "\n";
+  }
+  oFile.close();
+  
+  int error = system("clear;g++ -std=c++11 -fPIC -shared boilerplate.cpp -o boilerplate.so -lncurses");
 
   if (error != 0) // good job
     {
@@ -153,3 +169,5 @@ bool Boilerplate::run() {
   
   return true;
 }
+
+
