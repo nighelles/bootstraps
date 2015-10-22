@@ -28,13 +28,20 @@ Boilerplate::Boilerplate() {
   ;;
 }
 
+void save(string filename) {
+    ofstream oFile("boilerplate.cpp");
+    for (string i : lines) {
+        oFile << i << "\n";
+    }
+    oFile.close();
+  
+}
+
 bool Boilerplate::run() {
 
-  ifstream inFile("./boilerplate.cpp");
+  vector<vector<string>> lines;
 
-  vector<string> lines;
-
-vector<string> files{"./boilerplate.cpp","./boilerplate.h"};
+  vector<string> files{"./boilerplate.cpp","./boilerplate.h"};
   int file_num = 0;
   
   int highlight_x=10;
@@ -47,11 +54,18 @@ vector<string> files{"./boilerplate.cpp","./boilerplate.h"};
   keypad(stdscr, TRUE);
   noecho();
 
-  for (string line; getline(inFile, line);)
-    lines.push_back(line);
+  // load files
+  for (filename : files) {
+    vector<string> tempLines;
+    ifstream inFile(filename);
 
-  inFile.close();
-
+    for (string line; getline(inFile, line);)
+      tempLines.push_back(line);
+    
+    inFile.close();
+    lines.push_back(tempLines);
+  }
+  
   int ch;
   int maxx,maxy;
   getmaxyx(stdscr,maxy,maxx);
@@ -73,22 +87,22 @@ vector<string> files{"./boilerplate.cpp","./boilerplate.h"};
       move(1,0);
       for (int i=0;i<files.size();i++)
 	{
-if (i==file_num) {
-attron(A_STANDOUT);
-} 
-printw(files[i].c_str());
-attroff(A_STANDOUT);
-}
-  
+	  if (i==file_num) {
+	    attron(A_STANDOUT);
+	  } 
+	  printw(files[i].c_str());
+	  attroff(A_STANDOUT);
+	}
+      
       for(int y=0;y<maxy-header_size;y++)
 	{
 	  int ytoshow = y + scrolloffset;
 	  
 	  if (lines.size()>ytoshow && ytoshow >= 0) {
-	    for(int x=0;x<lines[ytoshow].length();x++)
+	    for(int x=0;x<lines[file_num][ytoshow].length();x++)
 	      {
 		move(y+header_size,x); // extra 1 is for header
-		addch(lines[ytoshow].c_str()[x]);
+		addch(lines[file_num][ytoshow].c_str()[x]);
 	      }
 	    }
 	}
@@ -103,13 +117,13 @@ attroff(A_STANDOUT);
       int file_x = highlight_x;
       int file_y = highlight_y-header_size+scrolloffset;
       
-      lines_it = lines.begin()+file_y;
+      lines_it = lines[file_num].begin()+file_y;
       line = *lines_it;
       line_it = line.begin()+file_x;
 
       switch (ch) {
       case '\n':
-	lines.insert(lines_it+1,"");
+	lines[file_num].insert(lines_it+1,"");
 	highlight_y++;
 	break;
       case KEY_UP:
@@ -120,10 +134,18 @@ attroff(A_STANDOUT);
 	highlight_x--;break;
       case KEY_RIGHT:
 	highlight_x++;break;
+      case KEY_SLEFT:
+	file_num--;
+	if (file_num < 0) file_num = files.size()-1;
+	break;
+      case KEY_SRIGHT:
+	file_num++;
+	if (file_num >= files.size()) file_num = 0;
+	break;
 	
       case KEY_BACKSPACE:
 	  if (line == "") {
-	    lines.erase(lines_it);
+	    lines[file_num].erase(lines_it);
 	  } else {
 	    if (highlight_x < line.size()) {
 	      
@@ -170,12 +192,8 @@ attroff(A_STANDOUT);
 
   // Here's the fun part
 
-  ofstream oFile("boilerplate.cpp");
-  for (string i : lines) {
-    oFile << i << "\n";
-  }
-  oFile.close();
-  
+  save(files[file_num]); //save current file
+
   int error = system("clear;g++ -std=c++11 -fPIC -shared boilerplate.cpp -o boilerplate.so -lncurses");
 
   if (error != 0) // good job
