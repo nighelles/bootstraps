@@ -7,8 +7,10 @@
 #include <ncurses.h>
 #include <stdlib.h>
 
-using namespace std;
+const int header_size = 2;
 
+using namespace std;
+ 
 //This is a test comment 
 
 extern "C" Boilerplate* create_Boilerplate()
@@ -31,6 +33,9 @@ bool Boilerplate::run() {
   ifstream inFile("./boilerplate.cpp");
 
   vector<string> lines;
+
+vector<string> files{"./boilerplate.cpp","./boilerplate.h"};
+  int file_num = 0;
   
   int highlight_x=10;
   int highlight_y=12;
@@ -61,17 +66,28 @@ bool Boilerplate::run() {
 
       move(0,0);
       attron(A_STANDOUT);
-      printw("bootstraps %d // press F5 to continue", highlight_y-1+scrolloffset);
+      printw("bootstraps %d // press F5 to continue", highlight_y-header_size+scrolloffset);
       attroff(A_STANDOUT);
+
+      // Do the file selection thing
+      move(1,0);
+      for (int i=0;i<files.size();i++)
+	{
+if (i==file_num) {
+attron(A_STANDOUT);
+} 
+printw(files[i].c_str());
+attroff(A_STANDOUT);
+}
   
-      for(int y=0;y<maxy-1;y++)
+      for(int y=0;y<maxy-header_size;y++)
 	{
 	  int ytoshow = y + scrolloffset;
 	  
 	  if (lines.size()>ytoshow && ytoshow >= 0) {
 	    for(int x=0;x<lines[ytoshow].length();x++)
 	      {
-		move(y+1,x); // extra 1 is for header
+		move(y+header_size,x); // extra 1 is for header
 		addch(lines[ytoshow].c_str()[x]);
 	      }
 	    }
@@ -85,7 +101,7 @@ bool Boilerplate::run() {
       string::iterator line_it;
 
       int file_x = highlight_x;
-      int file_y = highlight_y-1+scrolloffset;
+      int file_y = highlight_y-header_size+scrolloffset;
       
       lines_it = lines.begin()+file_y;
       line = *lines_it;
@@ -127,13 +143,14 @@ bool Boilerplate::run() {
 	break;
 
       default:
-	if (highlight_x < line.size()) {
-	  line.insert(line_it, ch);
+	if (highlight_x <= line.size()) {
+	  line.insert(line_it+1, ch);
 	  highlight_x++;
 	  *lines_it = line;
 	} else {
 	  line.push_back(ch);
 	  *lines_it = line;
+	  highlight_x = line.size()+1;
 	}
       }
 	
@@ -142,7 +159,7 @@ bool Boilerplate::run() {
 	if (file_y < lines.size()-1)
 	  scrolloffset += 1;
       }
-      if (highlight_y<1) {
+      if (highlight_y<header_size) {
 	highlight_y += 1;
 	scrolloffset -= 1;
       }

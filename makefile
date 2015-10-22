@@ -1,7 +1,7 @@
 all: bootstraps
 
-bootstraps: boilerplate.so
-	g++ bootstraps.o -o bootstraps
+bootstraps: bootstraps.o boilerplate.so
+	g++ bootstraps.o -o bootstraps -ldl
 	
 bootstraps.o: bootstraps.cpp
 	g++ -c bootstraps.cpp
